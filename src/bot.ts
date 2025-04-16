@@ -10,7 +10,7 @@ if (!TOKEN) {
   throw new Error("bot id not set in .env file");
 }
 
-const url = "https://d2da-146-196-36-113.ngrok-free.app"; // Replace with your actual ngrok/render URL
+const url = "https://75dc-146-196-36-113.ngrok-free.app"; // Replace with your actual ngrok/render URL
 const port = Number(process.env.PORT) || 3000;
 
 // Initialize bot with no polling (we're using webhook)
@@ -34,11 +34,12 @@ bot.on("message", (msg) => {
 });
 
 const miniAppUrl = "https://www.facebook.com/"; // replace with my next app mini app url
-
+const img =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMomP-Dtx0UnfaVbEX7xJ4wf4SGgoicldDvg&s";
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-
-  bot.sendMessage(chatId, "Welcome! Click below to launch the app:", {
+  bot.sendPhoto(chatId, img).then();
+  bot.sendMessage(chatId, "Welcome! Click below to launch the supaX", {
     reply_markup: {
       inline_keyboard: [
         [
