@@ -6,53 +6,261 @@ dotenv.config();
 
 const app = express();
 const TOKEN = process.env.BOT_TOKEN!;
+const port = Number(process.env.PORT) || 3001;
+
 if (!TOKEN) {
   throw new Error("bot id not set in .env file");
 }
 
-const url = "https://75dc-146-196-36-113.ngrok-free.app"; // Replace with your actual ngrok/render URL
-const port = Number(process.env.PORT) || 3000;
+// ✅ Initialize bot using LONG POLLING instead of webhook
+const bot = new TelegramBot(TOKEN, { polling: true });
 
-// Initialize bot with no polling (we're using webhook)
-const bot = new TelegramBot(TOKEN, { polling: false }); // Change to polling: false
-
-// Set webhook with Telegram
-bot.setWebHook(`${url}/bot${TOKEN}`);
-
-// Parse incoming updates
+// Middleware (if you want express for other purposes)
 app.use(express.json());
 
-// Endpoint that Telegram sends updates to
-app.post(`/bot${TOKEN}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
+app.get("/", (_, res) => {
+  res.send("Telegram bot is running with long polling!");
 });
 
-// Just to ping!
+// Bot logic
 bot.on("message", (msg) => {
-  bot.sendMessage(msg.chat.id, "I am alive!");
-});
+  if (
+    msg.text !== "/start" &&
+    msg.text !== "/help" &&
+    msg.text !== "/about" &&
+    msg.text !== "/share"
+  ) {
+    bot.sendMessage(
+      msg.chat.id,
+      `Welcome to SupaX! 👋 Here's what you can do:`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🚀 Open Mini App",
+                web_app: { url: miniAppUrl },
+              },
+            ],
+            [
+              {
+                text: "ℹ️ Help",
+                callback_data: "help",
+              },
+              {
+                text: "📝 About",
+                callback_data: "about",
+              },
+            ],
+            [
+              {
+                text: "📱 Share",
+                callback_data: "share",
+              },
+            ],
+          ],
+        },
+      }
+    );
+  }
+}); // replace with your Next.js app
 
-const miniAppUrl = "https://www.facebook.com/"; // replace with my next app mini app url
 const img =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMomP-Dtx0UnfaVbEX7xJ4wf4SGgoicldDvg&s";
-bot.onText(/\/start/, (msg) => {
+
+const miniAppUrl = "https://ed4d-103-211-19-229.ngrok-free.app";
+
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
+  // Get the user's first name or username
+  const userName = msg.from?.first_name || msg.from?.username || "there";
+
   bot.sendPhoto(chatId, img).then();
-  bot.sendMessage(chatId, "Welcome! Click below to launch the supaX", {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text: "🚀 Open Mini App",
-            web_app: { url: miniAppUrl },
-          },
+  bot.sendMessage(
+    chatId,
+    `Hello @${userName}!👋
+
+At SupaX, we're transforming how you boost engagement and growth in the web3 space. With our gamified SocialFi platform, you can effortlessly earn points, level up your influence, and earn exciting rewards while having fun!
+
+Now, it's even more fun on Telegram! Plus, stay tuned for even more exciting features and new projects launching soon!`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "🚀 Open Mini App",
+              web_app: { url: miniAppUrl },
+            },
+          ],
         ],
-      ],
-    },
-  });
+      },
+    }
+  );
+});
+
+// Handle callback queries
+bot.on("callback_query", (query) => {
+  const chatId = query.message?.chat.id;
+
+  if (!chatId) return;
+
+  if (query.data === "help") {
+    bot.sendMessage(
+      chatId,
+      `Available commands:
+/start - Start the bot and see welcome message
+/help - Show this help message
+/about - Learn more about SupaX
+/share - Share this bot with friends
+
+You can also open our Mini App anytime using the button below!`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🚀 Open Mini App",
+                web_app: { url: miniAppUrl },
+              },
+            ],
+          ],
+        },
+      }
+    );
+  } else if (query.data === "about") {
+    bot.sendMessage(
+      chatId,
+      `About SupaX 🌟
+
+SupaX is a gamified SocialFi platform where you can earn points, level up your influence, and win rewards while having fun in the web3 space.
+
+Our mission is to make web3 engagement more accessible and enjoyable for everyone.`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🚀 Open Mini App",
+                web_app: { url: miniAppUrl },
+              },
+            ],
+            [
+              {
+                text: "💬 Join Community",
+                url: "https://t.me/supax_community", // Replace with your actual community link
+              },
+            ],
+          ],
+        },
+      }
+    );
+  } else if (query.data === "share") {
+    bot.sendMessage(
+      chatId,
+      `Share SupaX with your friends! 🎉
+
+Invite them to try our awesome Mini App and join our growing community.`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "📱 Share Bot",
+                url: `https://t.me/share/url?url=${miniAppUrl}&text=Check%20out%20this%20awesome%20SupaX%20bot!`,
+              },
+            ],
+          ],
+        },
+      }
+    );
+  }
+
+  // Answer the callback query to remove loading state
+  bot.answerCallbackQuery(query.id);
+});
+
+// Handle help command
+bot.onText(/\/help/, (msg) => {
+  const chatId = msg.chat.id;
+  const userName = msg.from?.first_name || msg.from?.username || "there";
+  bot.sendMessage(
+    chatId,
+    `Hi @${userName}! Available commands:
+/start - Start the bot and see welcome message
+/help - Show this help message
+/about - Learn more about SupaX
+/share - Share this bot with friends
+
+You can also open our Mini App anytime using the button below!`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "🚀 Open Mini App",
+              web_app: { url: miniAppUrl },
+            },
+          ],
+        ],
+      },
+    }
+  );
+});
+
+// Handle about command
+bot.onText(/\/about/, (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(
+    chatId,
+    `About SupaX 🌟
+
+SupaX is a gamified SocialFi platform where you can earn points, level up your influence, and win rewards while having fun in the web3 space.
+
+Our mission is to make web3 engagement more accessible and enjoyable for everyone.`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "🚀 Open Mini App",
+              web_app: { url: miniAppUrl },
+            },
+          ],
+          [
+            {
+              text: "💬 Join Community",
+              url: "https://t.me/supax_community", // Replace with your actual community link
+            },
+          ],
+        ],
+      },
+    }
+  );
+});
+
+// Handle share command
+bot.onText(/\/share/, (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(
+    chatId,
+    `Share SupaX with your friends! 🎉
+
+Invite them to try our awesome Mini App and join our growing community.`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "📱 Share Bot",
+              url: `https://t.me/share/url?url=${miniAppUrl}&text=Check%20out%20this%20awesome%20SupaX%20bot!`,
+            },
+          ],
+        ],
+      },
+    }
+  );
 });
 
 app.listen(port, () => {
-  console.log(`Express server listening at http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
